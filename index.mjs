@@ -1,0 +1,26 @@
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+
+const sns = new SNSClient({});
+
+export const handler = async (event) => {
+  const input = typeof event.body === "string" ? JSON.parse(event.body) : event;
+  const { pedidoId, tipoEvento, simularError } = input;
+
+  const mensaje = {
+    type: tipoEvento,
+    eventId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    pedidoId,
+    simularError: simularError === true,
+  };
+
+  await sns.send(new PublishCommand({
+    TopicArn: process.env.TOPIC_ARN,
+    Message: JSON.stringify(mensaje),
+    MessageAttributes: {
+      tipo_evento: { DataType: "String", StringValue: tipoEvento },
+    },
+  }));
+
+  return { statusCode: 202, body: JSON.stringify({ publicado: mensaje.eventId }) };
+};
